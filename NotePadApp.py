@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk
 
+
 class TabbedNotepad:
     def __init__(self, root):
         # 初始化主窗口
@@ -100,7 +101,7 @@ class TabbedNotepad:
     def do_find(self):
         # 获取当前选中的标签页
         current_tab = self.notebook.nametowidget(self.notebook.select())
-        if not current_tab in self.tabs:
+        if current_tab not in self.tabs:
             return
         text = self.tabs[current_tab]['text']
         if current_tab in self.tabs:
@@ -111,29 +112,46 @@ class TabbedNotepad:
             find_label.grid(row=0, column=0)
             find_entry = tk.Entry(find_window)
             find_entry.grid(row=0, column=1)
-            find_button = tk.Button(find_window, text='查找', command=lambda: self.find_text(text, find_entry.get(), current_tab))
+            find_button = tk.Button(find_window, text='查找', command=lambda: self.find_text(text, find_entry.get(),current_tab))
             find_button.grid(row=0, column=2)
+            # 绑定事件处理器，当按键释放时调用 find_text
+            find_entry.bind('<KeyRelease>', lambda event: self.find_text(text, find_entry.get(), current_tab))
+            # 绑定事件处理器，当按按下回车键时调用 find_text
+            find_entry.bind('<Return>', lambda event: self.find_text(text, find_entry.get(), current_tab))
+            # 聚焦到 Entry 小部件
+            find_entry.focus_set()
+            # 绑定事件处理器，当按按下 Escape 键时调用 find_window.destroy
+            find_entry.bind('<Escape>', lambda event: find_window.destroy())
 
-    def find_text(self, text,find_word, tab):
+    def find_text(self, text, word, tab):
         """
         查找文本
         :param text: Text 小部件
-        :param find_word: 要查找的字符串
+        :param word: 要查找的字符串
         :param tab: 当前标签页
         :return:
         """
-        if not find_word or not tab or not text:
-            return
         self.tabs[tab]['text'].tag_remove('found', '1.0', tk.END)
+        if not word or not tab or not text:
+            return
         try:
             index = '1.0'
             while True:
-                index = text.search(find_word, index, nocase=0)
+                # 在文本中查找 find_word
+                # search 方法返回找到的字符串的索引位置，格式：'1.0+2c'，表示从第1行第0列开始，向后移动2个字符
+                # search(text, startindex, stopindex, nocase)
+                # stopindex=tk.END 表示搜索到文本末尾，nocase=0 表示不区分大小写，
+                index = text.search(word, index, stopindex=tk.END, nocase=0)
+                # 如果没有找到，则退出循环
                 if not index:
                     break
-                last = '%s+%dc' % (index, len(find_word))
+                # last 作用为将索引位置向后移动 find_word 的长度
+                last = f'{index}+{len(word)}c'
+                # 将找到的字符串添加到 'found' 标签中
                 text.tag_add('found', index, last)
+                # 将下一次开始的索引index位置设置为 last
                 index = last
+            # 设置 'found' 标签的样式，字体为红色， 背景为黄色
             text.tag_config('found', foreground='red', background='yellow')
         except tk.TclError:
             pass
@@ -197,19 +215,13 @@ class TabbedNotepad:
         # 获取当前选中的标签页
         current_tab = self.notebook.nametowidget(self.notebook.select())
         if current_tab in self.tabs:
-            # 获取当前标签页的 Text 小部件
-            text = self.tabs[current_tab]['text']
-            # 撤销最后一次修改
-            text.edit_undo()
+            self.tabs[current_tab]['text'].edit_undo()
 
     def redo(self):
         # 获取当前选中的标签页
         current_tab = self.notebook.nametowidget(self.notebook.select())
         if current_tab in self.tabs:
-            # 获取当前标签页的 Text 小部件
-            text = self.tabs[current_tab]['text']
-            # 重做最后一次修改
-            text.edit_redo()
+            self.tabs[current_tab]['text'].edit_redo()
 
 
 if __name__ == "__main__":
